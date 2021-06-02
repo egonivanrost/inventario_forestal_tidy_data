@@ -1,7 +1,7 @@
 ---
-title: "otras_var_um_version1"
+title: "otras_var_um_version2"
 author: "Egon Iván Rost"
-date: "18/1/2021"
+date: "02/06/2021"
 output: html_document
     number_sections: true
 ---
@@ -25,7 +25,7 @@ pacman::p_load(plyr, dplyr, cowplot, ggplot2, knitr, lubridate, naniar, readxl, 
 
 colClean <- function(x){ colnames(x) <- base::gsub("\\[", "", colnames(x)); colnames(x) <- gsub("\\]", "", colnames(x)); x } #función para eliminar corchetes de los nombres de las columnas
 
-input1 <- readxl::read_excel("C:\\Users\\Admin\\Dropbox\\Datos 2INBN\\18_01_2021\\um.xlsx", col_types = "text")
+input1 <- readxl::read_excel("tabla_um.xlsx", col_types = "text")
 
 input1 <- colClean(input1)
 
@@ -34,16 +34,14 @@ input1 <- input1 %>% dplyr::rename("pastoreo_presencia" = "pastoreo1", "erosion_
 cols_num <- c("fecha_um1_year","fecha_um1_month", "fecha_um1_day", "hora_inicio_um1_hour", "hora_inicio_um1_minute", "hora_fin_um1_hour", "hora_fin_um1_minute", "rumbo_reloc", "no_personas_brigada", "altitud", "pendiente", "material_caido_transecta_norte_fino", "material_caido_transecta_norte_mediano", "material_caido_transecta_sur_fino", "material_caido_transecta_sur_mediano")
 input1[cols_num] <- base::sapply(input1[cols_num], base::as.numeric)
 
-input2 <- utils::read.csv("C:\\Users\\Admin\\Dropbox\\Datos 2INBN\\Tablas y Scripts 2INBN\\Tablas actualizadas\\TABLA_COMPLETA_2021\\INBN2_UM_pais_2021.csv") #archivo propio (compartido en diciembre 2020) con todas las UM que se utilizaron exclusivamente para el procesamiento de datos. n = 3811
+input2 <- utils::read.csv("tabla_filtro.csv")
 um_procesadas <- base::unique(input2$um_id_um)
 
-input3 <- read.csv("C:\\Users\\Admin\\Dropbox\\Datos 2INBN\\Tablas y Scripts 2INBN\\Tablas actualizadas\\MONTE\\MON_Individuos_SEPTIEMBRE_2020.csv")
+input3 <- read.csv("estrato_forestal_puntual.csv")
 um_monte_estepa <- unique(input3 %>% dplyr::filter(Nivel_II == "Estepa arbustiva") %>% dplyr::select(um_id_um))
 um_monte_estepa <- um_monte_estepa$um_id_um
 
-input4 <- read.csv("C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\otbn_um_todas_ofc_22_cvn_ign.csv")
-
-#input_test <- read.csv("C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\otras_variables_UM_todas_OFC.csv", quote = "")
+input4 <- read.csv("info_adicional.csv")
 
 #subset de columnas de interes, algunas son todas NA y por eso se dropean (pastoreo2, pastoreo3, pastoreo4, pastoreo5, tipo_ganado5, tipo_ganado_qualifier5, formas_vida9, formas_vida_qualifier8, formas_vida_qualifier9, tipo_erosion3, pfnm_code6, pfnm_code7, pfnm_code8, pfnm_code9, pfnm_code10, pfnm_scientific_name6, pfnm_scientific_name7, pfnm_scientific_name8, pfnm_scientific_name9, pfnm_scientific_name10, pfnm_vernacular_name6, pfnm_vernacular_name7, pfnm_vernacular_name8, pfnm_vernacular_name9, pfnm_vernacular_name10)
 tabla_UM <- base::subset(input1, select = -c(pastoreo2, pastoreo3, pastoreo4, pastoreo5, tipo_ganado5, tipo_ganado_qualifier5, formas_vida9, formas_vida_qualifier8, formas_vida_qualifier9, tipo_erosion3, pfnm_code6, pfnm_code7, pfnm_code8, pfnm_code9, pfnm_code10, pfnm_scientific_name6, pfnm_scientific_name7, pfnm_scientific_name8, pfnm_scientific_name9, pfnm_scientific_name10, pfnm_vernacular_name6, pfnm_vernacular_name7, pfnm_vernacular_name8, pfnm_vernacular_name9, pfnm_vernacular_name10, coordenadas_grilla_srs, coordenadas_referencia_lat_grados1, coordenadas_referencia_lat_minutos1, coordenadas_referencia_lat_segundos1, coordenadas_referencia_long_grados1, coordenadas_referencia_long_minutos1, coordenadas_referencia_long_segundos1,  coordenadas_referencia_latitude1, coordenadas_referencia_longitude1, coordenadas_referencia_coordinate1_srs, coordenadas_referencia_coordinate1_x, coordenadas_referencia_coordinate1_y, relocalizacion, rumbo_reloc, coordenadas_gps_lat_grados2, coordenadas_gps_lat_minutos2, coordenadas_gps_lat_segundos2, coordenadas_gps_long_grados2, coordenadas_gps_long_minutos2, coordenadas_gps_long_segundos2, coordenadas_gps_latitude2, coordenadas_gps_longitude2, coordenadas_gps_coordinate2_srs, coberturas_cob_arborea_77, coberturas_cob_arborea_77_unit_name, coberturas_cob_arborea_33, coberturas_cob_arborea_33_unit_name, coberturas_cob_arborea_total, coberturas_cob_arborea_total_unit_name, coberturas_cob_arbustivaa, coberturas_cob_arbustivaa_unit_name, coberturas_cob_inferiorr, coberturas_cob_inferiorr_unit_name, coberturas_cob_chaguar, coberturas_cob_chaguar_unit_name, fotografias_um1, fotografias_um2, fotografias_um3, track_file)) 
@@ -124,7 +122,7 @@ espacial_vars <- plyr::join_all(list(espacial_vars, otbn_tab), by = c("id_um", "
 
 
 #----PENDIENTE----
-#count(espacial_vars, pendiente) #escalas probablemente mezcladas (grados y %), para simplificar se crean categorías en base a la escala de grados de esta forma subestimando prudentemente.
+#count(espacial_vars, pendiente) 
 
 espacial_vars <- espacial_vars %>% dplyr::mutate(pendiente_categoria = case_when(
       pendiente < 10 ~ "sin_pendiente",
@@ -143,10 +141,6 @@ espacial_vars$exposicion <- droplevels.factor(espacial_vars$exposicion, exclude 
 espacial_vars <- espacial_vars %>% rename("coordenadas_grilla_Y" = "coordenadas_grilla_x", "coordenadas_grilla_X" = "coordenadas_grilla_y", "coordenadas_centro_parcela_X" = "coordenadas_gps_coordinate2_x", "coordenadas_centro_parcela_Y" = "coordenadas_gps_coordinate2_y")
 
 espacial_vars <- espacial_vars[, c(1:3, 5, 4, 6:8, 13, 10:11)]
-
-# write.table(espacial_vars, file = "C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\UM_todas_OFC_espacial_vars.csv", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = ",")
-# 
-#write.table(otbn_tab, file = "C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\UM_todas_OFC_OTBN_categoria.csv", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = ",")
 
 ```
 
@@ -209,7 +203,7 @@ vis_miss(brigada_vars, sort_miss = TRUE) + labs(title = "NA en variables de la b
 
 #----NOMBRES JEFES DE BRIGADA----
 count(brigada_vars, jefe_brigada) #hay que homogeneizar los nombres, y tratar los registros raros
-nombres_jefes <- c("Abel Velasquez", "Adrian Dominguez", "Alejandro Piggot", "Ariel Amoroso", "Ariel Francisco", "Ariel Mortoro", "Arturo Segovia", "Bruno Acevedo", "Javier Albanesi", "Walter Campos", "Nestor Arriola", "Luis Carignano", "Carlos Inzaurralde", "Carlos Lima", "Pablo D'Angelo", "David Alvarez", "Eduardo Sisti", "Emiliano Blanc", "Emilio Montefinale",  "Enzo Campos", "Felipe Esteche", "Fabián Momberg", "Facundo Bertolami", "Santiago Favoretti", "Federico Gonzalez", "Felipe Galeano", "Jose Fernandez", "Fernando Barbero", "Fernando Rodriguez", "Francisco Ojeda", "Ruben Gon", "Miguel Gonzalez", "Gonzalo Caballe", "Hector Fitze", "Hector Keller", "Hernan Colomb", "Horacio Ivancich", "Leonardo Huertas", "Miguel Maldonado", "Ignacio Contreras", "Ivan Suarez", "Jorge Araujo", "Juan Solis", "Julian Quispe", "Karina Keller", "Walter Lezcano", "Lisandro Heit", "Luis Ritter", "Marcos Gonzalez", "Martin Abdo", "Matias Carignano", "Mauricio Mattenet", "Eduardo Mayol", "Miguel Mamani", "Nadia Griffiths", "Lucas Monelos",  "Walter Puyol", "Raul Arguimbao", "Renzo Eichelberger", "Santiago Ponce", "Sergio Rode", "Sergio Saiquita", "Sergio Ledesma", "Juan Skoko", "Walter Schmidt", "Felipe Galeano")
+nombres_jefes <- c("Abel", "Carlos", "Pablo", "David", "Eduardo", "Felipe")
 #Package stringi para sacar acentos y normalizar el string
 #Package textclean para sacar escapes /n de los strings
 brigada_vars$jefe_brigada <- textclean::replace_white(stri_trans_general(tolower(brigada_vars$jefe_brigada),"Latin-ASCII"))
@@ -227,12 +221,6 @@ brigada_vars$jefe_brigada[-which(brigada_vars$jefe_brigada %in% nombres_jefes)] 
 for (jefe in nombres_jefes) {
   brigada_vars$jefe_brigada <- ifelse(stringsim(brigada_vars$jefe_brigada,tolower(jefe), method = "jw") < 0.85, brigada_vars$jefe_brigada, jefe) }
 
-count(brigada_vars, jefe_brigada) #Verificacion
-#nombres_jefes[-which(nombres_jefes %in% brigada_vars$jefe_brigada)] #Verificacion
-
-#se debe continuar con corrección manual de unos pocos campos, registros sin clara referencia a un nombre (por ejemplo los apodos como "cacho") por defecto es NA
-brigada_vars$jefe_brigada<- ifelse(brigada_vars$jefe_brigada %in% nombres_jefes, brigada_vars$jefe_brigada, unlist(sapply(brigada_vars$jefe_brigada, function(x) switch(x, "agustin bruno acevdo" =  "Bruno Acevedo", "alejandro walter schmidt" = "Walter Schmidt" , "bogado" = "Bogado", "campo" = "Campos", "campos" = "Campos", "carignano" = "Carignano", "canignano" = "Carignano", "carigniano" = "Carignano", "carigñano" = "Carignano", "carlos josé fernandez" = "Carlos Fernandez", "castillo" = "Castillo", "control" = "DNB", "d'angelo" = "Pablo D'Angelo", "d'angelo" = "Pablo D'Angelo", "d'angelo >pablo" = "Pablo D'Angelo", "d,angelo" = "Pablo D'Angelo", "d`angelo" = "Pablo D'Angelo", "dangelo" = "Pablo D'Angelo", "dángelo"= "Pablo D'Angelo", "diaz diego" = "Diego Diaz", "favoretti" = "Santiago Favoretti", "favoretti.s" = "Santiago Favoretti", "fernandez deivid" = "Deivid Fernandez",  "florencia maria igarzabal" = "Florencia Igarzabal", "gonzales" = "Gonzales", "gonzalez" = "Gonzalez", "gonzalez f" =  "Federico Gonzalez", "gonzalez, sabrina" = "Sabrina Gonzalez", "justino jorge araujo" = "Jorge Araujo", "manuel juan solís" = "Juan Solis", "matias diego diaz" = "Diego Diaz", "mayol" = "Eduardo Mayol", "mestres" = "Mestres", "nadia" = "Nadia Griffiths", "piggot" = "Alejandro Piggot", "r gon." = "Ruben Gon", "rodriguez f" = "Fernando Rodriguez", "saiquita" = "Sergio Saiquita", "skoko" = "Juan Skoko", "skoko-sena" =  "Juan Skoko", "skoko - sena" = "Juan Skoko", "skoko jose juan" = "Juan Skoko", "alvarez deivid" = "David Alvarez", "camilo matias jaime" = "Matias Jaime",  "alfredo marcos gonzalez" = "Marcos Gonzalez", "angel miguel mamani" = "Miguel Mamani", "angelo d" = "Pablo D'Angelo", "arguimbao rul" = "Raul Arguimbao", "bruno agustin acenedo " = "Bruno Acevedo", "agustin bruno acenedo" = "Bruno Acevedo", "camignano" = "Carignano", "carlos jose fernandez" = "Jose Fernandez", "d' angelo" = "Pablo D'Angelo", "d'pabllo angelo" = "Pablo D'Angelo", "d'pablo angrlo" = "Pablo D'Angelo", "eichelberg eenzo" = "Renzo Eichelberger", "eiclerberg renzo"  = "Renzo Eichelberger", "feliepe esteche" = "Felipe Esteche", "francisco mattenet" = "Mauricio Mattenet", "g enzo. cmpos" = "Enzo Campos", "gon" = "Ruben Gon", "javier luis ritter" = "Luis Ritter", "josé fernández carlos" = "Jose Fernandez", "juam skoko jose" = "Juan Skoko", "ledesma torres" = "Sergio Ledesma", "ledesma torrez" = "Sergio Ledesma", "manuel juan solis" = "Juan Solis", "miguel maldonado/arriola nestor" = "Miguel Maldonado", "torres sergio ledesma" = "Sergio Ledesma", "torrez sergio ledesma" = "Sergio Ledesma", NA)), use.names = FALSE))
-  
 count(brigada_vars, jefe_brigada) #Verificacion
 #nombres_jefes[-which(nombres_jefes %in% brigada_vars$jefe_brigada)] #Verificacion
 brigada_vars %>% dplyr::group_by(province) %>% count(jefe_brigada) #Verificacion de consistencia final presencia de cada jefe de brigada por provincia
@@ -300,7 +288,7 @@ brigada_vars$observaciones_um <- sapply(brigada_vars$observaciones_um, function 
 
 ## Variables sitio
 
-Los codigos de presencia de ganado provienen de la encuesta del Collect, se pueden revisar en el "Survey Designer". Existio un cambio en 2018 de encuesta, por eso existen multiples variables asociadas a la misma dimension y se deben normalizar los campos.
+Existio un cambio en 2018 de encuesta, por eso existen multiples variables asociadas a la misma dimension y se deben normalizar los campos.
 Ganado: 1-Bovino, 2-Equino, 3-Caprino, 4-Ovino, 5-Otro.
 
 ```{r Datos de sitio, fig.width = 15, fig.height = 8}
@@ -418,8 +406,7 @@ sitio_vars <- subset(sitio_vars, select = -c(tipo_ganado1, tipo_ganado2, tipo_ga
 
 ## Variables biodiversidad UM
 
-Los codigos de formas de vida y Productos Forestales No Madereros (PFNM) provienen de la encuesta del Collect, se pueden revisar en el "Survey Designer". Existio un cambio en 2018 de encuesta, por eso existen multiples variables asociadas a la misma dimension y se deben normalizar los campos.
-Sugerencia: convendría cambiar el termino "formas de vida" (bien definido tecnicamente  y no corresponde con la categorias que se usaron en el inventario) a "diversidad de biota".
+Existio un cambio en 2018 de encuesta, por eso existen multiples variables asociadas a la misma dimension y se deben normalizar los campos.
 
 formas_vida: 0-Ausencia, 1-Helechos, 2-Cactaceas, 3-Epifitas, 4-Briofitas, 5-Lianas, 6-Orquideas, 7-Gramineas, 8-Otras. 
 
@@ -512,65 +499,4 @@ var_UM_f <- plyr::join_all(list(espacial_vars, tiempo_vars, brigada_vars, sitio_
 tabla_estepa <- var_UM_f[var_UM_f$id_um %in% um_monte_estepa, ]
 tabla_sin_estepa <- var_UM_f[!var_UM_f$id_um %in% um_monte_estepa, ]
 
-#write.table(var_UM_f, file = "C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\otras_variables_UM_todas_OFC_completa_correg.csv", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = ",")
-
-# write.table(tabla_sin_estepa, file = "C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\otras_variables_UM_sin_estepa_3.csv", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = ",")
-
-# write.table(tabla_estepa, file = "C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\otras_variables_UM_estepa_3.csv", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = ",")
-
-```
-
-```{r, size="small" }
-
-tabla_sin_estepa %>% group_by(formas_helechos, formas_cactaceas, formas_epifitas, formas_briofitas, formas_lianas, formas_orquideas, formas_orquideas, formas_gramineas, formas_otras) %>% summarise(count = n()) %>% arrange(desc(count))
-
-funcion1 <- function(s){
-tabla_sin_estepa %>% filter(region == s) %>% group_by(formas_helechos, formas_cactaceas, formas_epifitas, formas_briofitas, formas_lianas, formas_orquideas, formas_orquideas, formas_gramineas, formas_otras) %>% summarise(count = n()) %>% arrange(desc(count))}
-
-for (reg in unique(tabla_sin_estepa$region)) {
- 
- print(reg)   
- f<-funcion1(reg)
- print(f)
-  
-}
-
-
-```
-
-```{r}
-
-tabla_sin_estepa %>% count(tipo_paisaje) 
-
-funcion2 <- function(s){
-tabla_sin_estepa %>% filter(region == s) %>% count(tipo_paisaje) 
-  }
-
-for (reg in unique(tabla_sin_estepa$region)) {
- 
- print(reg)   
- f<-funcion2(reg)
- print(f)
-  
-}
-```
-
-
-
-```{r}
-
-tabla_sin_estepa %>% count(PFNM_presencia_resumen != "sin registro")  
-tabla_sin_estepa %>% count(PFNM_presencia_resumen, sort = TRUE)
-
-funcion3 <- function(s){
-print(tabla_sin_estepa %>% filter(region == s) %>% count(PFNM_presencia_resumen != "sin registro"))
-print(tabla_sin_estepa %>% filter(region == s) %>% count(PFNM_presencia_resumen, sort = TRUE))
-  }
-
-for (reg in unique(tabla_sin_estepa$region)) {
-
- print(reg)
- f<-funcion3(reg)
- }
-  
 ```
