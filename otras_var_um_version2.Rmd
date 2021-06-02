@@ -1,0 +1,576 @@
+---
+title: "otras_var_um_version1"
+author: "Egon Iván Rost"
+date: "18/1/2021"
+output: html_document
+    number_sections: true
+---
+
+```{r Setup}
+rm(list = ls())
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+# R Markdown
+
+Este es un archivo "R Markdown" con formato de salida HTML, para más información visitar: <http://rmarkdown.rstudio.com>. El lenguaje utilizado es R con el Entorno de Desarrollo Integrado (IDE) RStudio (R Core Team 2018, R: A language and environment for statistical computing, R Foundation for Statistical Computing, Vienna, Austria. URL https://www.R-project.org/). Si se ejecuta **Knit** desde el IDE se genera un documento que contiene la estructura general algorítmica y los resultados de los "chunks" (fragmentos de código) que lo conforman.
+
+# Insumos
+
+```{r Librerías - Funciones - Datos de Entrada}
+
+install.packages("pacman")
+#package::funcion
+pacman::p_load(plyr, dplyr, cowplot, ggplot2, knitr, lubridate, naniar, readxl, stringdist, stringi, stringr, textclean)
+
+colClean <- function(x){ colnames(x) <- base::gsub("\\[", "", colnames(x)); colnames(x) <- gsub("\\]", "", colnames(x)); x } #función para eliminar corchetes de los nombres de las columnas
+
+input1 <- readxl::read_excel("C:\\Users\\Admin\\Dropbox\\Datos 2INBN\\18_01_2021\\um.xlsx", col_types = "text")
+
+input1 <- colClean(input1)
+
+input1 <- input1 %>% dplyr::rename("pastoreo_presencia" = "pastoreo1", "erosion_presencia" = "erosion2")
+
+cols_num <- c("fecha_um1_year","fecha_um1_month", "fecha_um1_day", "hora_inicio_um1_hour", "hora_inicio_um1_minute", "hora_fin_um1_hour", "hora_fin_um1_minute", "rumbo_reloc", "no_personas_brigada", "altitud", "pendiente", "material_caido_transecta_norte_fino", "material_caido_transecta_norte_mediano", "material_caido_transecta_sur_fino", "material_caido_transecta_sur_mediano")
+input1[cols_num] <- base::sapply(input1[cols_num], base::as.numeric)
+
+input2 <- utils::read.csv("C:\\Users\\Admin\\Dropbox\\Datos 2INBN\\Tablas y Scripts 2INBN\\Tablas actualizadas\\TABLA_COMPLETA_2021\\INBN2_UM_pais_2021.csv") #archivo propio (compartido en diciembre 2020) con todas las UM que se utilizaron exclusivamente para el procesamiento de datos. n = 3811
+um_procesadas <- base::unique(input2$um_id_um)
+
+input3 <- read.csv("C:\\Users\\Admin\\Dropbox\\Datos 2INBN\\Tablas y Scripts 2INBN\\Tablas actualizadas\\MONTE\\MON_Individuos_SEPTIEMBRE_2020.csv")
+um_monte_estepa <- unique(input3 %>% dplyr::filter(Nivel_II == "Estepa arbustiva") %>% dplyr::select(um_id_um))
+um_monte_estepa <- um_monte_estepa$um_id_um
+
+input4 <- read.csv("C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\otbn_um_todas_ofc_22_cvn_ign.csv")
+
+#input_test <- read.csv("C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\otras_variables_UM_todas_OFC.csv", quote = "")
+
+#subset de columnas de interes, algunas son todas NA y por eso se dropean (pastoreo2, pastoreo3, pastoreo4, pastoreo5, tipo_ganado5, tipo_ganado_qualifier5, formas_vida9, formas_vida_qualifier8, formas_vida_qualifier9, tipo_erosion3, pfnm_code6, pfnm_code7, pfnm_code8, pfnm_code9, pfnm_code10, pfnm_scientific_name6, pfnm_scientific_name7, pfnm_scientific_name8, pfnm_scientific_name9, pfnm_scientific_name10, pfnm_vernacular_name6, pfnm_vernacular_name7, pfnm_vernacular_name8, pfnm_vernacular_name9, pfnm_vernacular_name10)
+tabla_UM <- base::subset(input1, select = -c(pastoreo2, pastoreo3, pastoreo4, pastoreo5, tipo_ganado5, tipo_ganado_qualifier5, formas_vida9, formas_vida_qualifier8, formas_vida_qualifier9, tipo_erosion3, pfnm_code6, pfnm_code7, pfnm_code8, pfnm_code9, pfnm_code10, pfnm_scientific_name6, pfnm_scientific_name7, pfnm_scientific_name8, pfnm_scientific_name9, pfnm_scientific_name10, pfnm_vernacular_name6, pfnm_vernacular_name7, pfnm_vernacular_name8, pfnm_vernacular_name9, pfnm_vernacular_name10, coordenadas_grilla_srs, coordenadas_referencia_lat_grados1, coordenadas_referencia_lat_minutos1, coordenadas_referencia_lat_segundos1, coordenadas_referencia_long_grados1, coordenadas_referencia_long_minutos1, coordenadas_referencia_long_segundos1,  coordenadas_referencia_latitude1, coordenadas_referencia_longitude1, coordenadas_referencia_coordinate1_srs, coordenadas_referencia_coordinate1_x, coordenadas_referencia_coordinate1_y, relocalizacion, rumbo_reloc, coordenadas_gps_lat_grados2, coordenadas_gps_lat_minutos2, coordenadas_gps_lat_segundos2, coordenadas_gps_long_grados2, coordenadas_gps_long_minutos2, coordenadas_gps_long_segundos2, coordenadas_gps_latitude2, coordenadas_gps_longitude2, coordenadas_gps_coordinate2_srs, coberturas_cob_arborea_77, coberturas_cob_arborea_77_unit_name, coberturas_cob_arborea_33, coberturas_cob_arborea_33_unit_name, coberturas_cob_arborea_total, coberturas_cob_arborea_total_unit_name, coberturas_cob_arbustivaa, coberturas_cob_arbustivaa_unit_name, coberturas_cob_inferiorr, coberturas_cob_inferiorr_unit_name, coberturas_cob_chaguar, coberturas_cob_chaguar_unit_name, fotografias_um1, fotografias_um2, fotografias_um3, track_file)) 
+
+#tabla_UM <- tabla_UM[tabla_UM$id_um %in% um_procesadas, ]
+
+base::length(unique(tabla_UM$id_um)) #chequeo simple de duplicados
+
+dplyr::count(tabla_UM, region)
+count(tabla_UM, province)
+
+```
+
+# Tidy-Wrangling
+
+Tratamiento NA (conviene por variables)
+
+Se realizan los procesos de limpieza y orden por conjunto de variables.
+
+## Variables espaciales
+
+```{r Variables espaciales, fig.width= 10}
+
+espacial_vars <- subset(tabla_UM, select = c(id_um, region, province, coordenadas_grilla_x, coordenadas_grilla_y, coordenadas_gps_coordinate2_x, coordenadas_gps_coordinate2_y, altitud, pendiente, exposicion))
+
+sapply(espacial_vars, function(x) base::sum(base::is.na(x))) #solo 4 NAs en hora_fin en horas y minutos
+visdat::vis_miss(espacial_vars, sort_miss = TRUE) + labs(title = "NA en variables espaciales")
+
+#se importa clasificacion por otbn
+otbn_tab <- subset(input4, select = -c(coordenadas_grilla_X, coordenadas_grilla_Y, coordenadas_centro_parcela_X, coordenadas_centro_parcela_Y))
+otbn_tab$province <- ifelse(otbn_tab$province == "6", "06", otbn_tab$province)
+
+#se rectifica la forma de expresar las categorías
+for (provincia in colnames(otbn_tab[4:26])){
+       otbn_tab[provincia] <- sapply(otbn_tab[provincia], function(x) mgsub(x, c("1","2","3", "Amarillo", "Rojo"), c("I", "II", "III", "II", "I")))
+}
+
+#se aglutina todo en una sola columna
+otbn_tab <- otbn_tab %>% dplyr::mutate(OTBN_categoria = case_when(
+      province == "6" ~ baCat_cons,
+      province == "10" ~ ctmCat_cons,
+      province == "14" ~ cbaCat_cons,
+      province == "18" ~ creCat_cons,
+      province == "22" ~ chCAT_CONS,
+      province == "26" ~ cbtCat_cons,
+      province == "30" ~ erCAT_CONS,
+      province == "34" ~ fsCat.26331,
+      province == "38" ~ jjcat_OTBN,
+      province == "42" ~ pmpCat_cons,
+      province == "46" ~ lrjCat_cons,
+      province == "50" ~ mdzCat_cons,
+      province == "54" ~ misCat_cons,
+      province == "58" ~ nqnCAT_CONS,
+      province == "62" ~ rnCat_cons,
+      province == "66" ~ saltaCat_cons,
+      province == "70" ~ sjCATEGORIA,
+      province == "74" ~ sltCAT_CONS,
+      province == "78" ~ stcCAT_CONS,
+      province == "82" ~ sfCat_cons_1,
+      province == "86" ~ sdecat_cons,
+      province == "90" ~ tcmCat_cons,
+      province == "94" ~ tdfCat_cons))
+
+#se arreglan algunas celdas sin información
+count(otbn_tab, OTBN_categoria)
+otbn_tab$OTBN_categoria <- ifelse(otbn_tab$OTBN_categoria == "" | is.na(otbn_tab$OTBN_categoria), "sin_categoria", otbn_tab$OTBN_categoria)
+
+otbn_tab <- subset(otbn_tab, select = c(id_um, region, province, OTBN_categoria, join_crv))
+
+espacial_vars <- plyr::join_all(list(espacial_vars, otbn_tab), by = c("id_um", "region", "province"), type = "inner")
+
+
+#----ALTITUD----
+#count(espacial_vars, altitud) #no se identifican valores atípicos, se  realiza validación utilizando las coordenadas y verificando con curvas de nivel del IGN.
+
+#espacial_vars$validacion_altura <- ifelse((espacial_vars$altitud - espacial_vars$join_crv) < 300, "bien", "mal")
+# dif_cvn <- (mean(espacial_vars$altitud, na.rm = TRUE)) - (mean(espacial_vars$join_crv, na.rm = TRUE))
+
+
+#----PENDIENTE----
+#count(espacial_vars, pendiente) #escalas probablemente mezcladas (grados y %), para simplificar se crean categorías en base a la escala de grados de esta forma subestimando prudentemente.
+
+espacial_vars <- espacial_vars %>% dplyr::mutate(pendiente_categoria = case_when(
+      pendiente < 10 ~ "sin_pendiente",
+      pendiente >= 10 & pendiente < 30 ~ "pendiente_suave",
+      pendiente >= 30 & pendiente < 40 ~ "pendiente_moderada",
+      pendiente >= 40 ~ "pendiente_fuerte"
+      ))
+
+
+#----EXPOSICION----
+# count(espacial_vars, exposicion) #un solo valor atípico "-" #sujeto a revision de altitud y pendiente
+espacial_vars$exposicion <- droplevels.factor(espacial_vars$exposicion, exclude = "-")
+
+#----FIN DE CHUNK----
+
+espacial_vars <- espacial_vars %>% rename("coordenadas_grilla_Y" = "coordenadas_grilla_x", "coordenadas_grilla_X" = "coordenadas_grilla_y", "coordenadas_centro_parcela_X" = "coordenadas_gps_coordinate2_x", "coordenadas_centro_parcela_Y" = "coordenadas_gps_coordinate2_y")
+
+espacial_vars <- espacial_vars[, c(1:3, 5, 4, 6:8, 13, 10:11)]
+
+# write.table(espacial_vars, file = "C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\UM_todas_OFC_espacial_vars.csv", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = ",")
+# 
+#write.table(otbn_tab, file = "C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\UM_todas_OFC_OTBN_categoria.csv", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = ",")
+
+```
+
+## Variables tiempo
+
+```{r Variables de fecha y tiempo, fig.width= 10}
+
+tiempo_vars <- subset(tabla_UM, select = c(id_um, region, province, fecha_um1_year, fecha_um1_month, fecha_um1_day, hora_inicio_um1_hour, hora_inicio_um1_minute, hora_fin_um1_hour, hora_fin_um1_minute))
+
+sapply(tiempo_vars, function(x) sum(is.na(x))) #solo 4 NAs en hora_fin en horas y minutos
+vis_miss(tiempo_vars, sort_miss = TRUE) + labs(title = "NA en variables de tiempo")
+
+count(tabla_UM, fecha_um1_year) #hay tres registros erróneos (con valor 9:18119085, 1011:86083049 y 12:86080079)
+
+anios_muestreo <- c("2015","2016","2017","2018","2019","2020")
+tiempo_vars$fecha_um1_year<- base::as.character(tiempo_vars$fecha_um1_year)
+tiempo_vars$fecha_um1_year<- base::ifelse(tiempo_vars$fecha_um1_year %in% anios_muestreo, tiempo_vars$fecha_um1_year, base::unlist(sapply(tiempo_vars$fecha_um1_year, function(x) switch(stringr::str_sub(x, start= -2), "15" = "2015", "16" = "2016", "17" = "2017", "18" = "2018", "19" = "2019", "20" = "2020", NA)), use.names = FALSE))
+#tiempo_vars %>% count(tiempo_vars$fecha_um1_year) #verificación
+
+count(tiempo_vars, fecha_um1_month) #tiempo_vars %>% count(fecha_um1_month) #sin errores
+count(tiempo_vars, fecha_um1_day) #sin errores
+count(tiempo_vars, hora_inicio_um1_hour)# un registro para hora 0 y otro para 2
+count(tiempo_vars, hora_fin_um1_hour) #un registro para hora 0
+count(tiempo_vars, hora_inicio_um1_minute) #sin errores
+count(tiempo_vars, hora_fin_um1_minute) #sin errores
+
+#Package lubridate
+tiempo_vars$fecha_um1_year <- as.numeric(tiempo_vars$fecha_um1_year)
+
+tiempo_vars$inicio_relevamiento <- lubridate::make_datetime(tiempo_vars$fecha_um1_year, tiempo_vars$fecha_um1_month, tiempo_vars$fecha_um1_day, tiempo_vars$hora_inicio_um1_hour, tiempo_vars$hora_inicio_um1_minute)
+
+tiempo_vars$fin_relevamiento <- make_datetime(tiempo_vars$fecha_um1_year, tiempo_vars$fecha_um1_month, tiempo_vars$fecha_um1_day, tiempo_vars$hora_fin_um1_hour, tiempo_vars$hora_fin_um1_minute)
+
+tiempo_vars$duracion_relevamiento <- lubridate::as.duration(tiempo_vars$fin_relevamiento - tiempo_vars$inicio_relevamiento)
+
+count(tiempo_vars, duracion_relevamiento) #existen 7 NA, registros de muy largas horas (puede ser que se empezó a medir desde el acceso a la UM) y 11 registros con tiempo negativo)
+tiempo_vars$duracion_relevamiento <- ifelse(tiempo_vars$duracion_relevamiento <= 0, NA, tiempo_vars$duracion_relevamiento)
+#tiempo_vars$duracion_relevamiento <- as.duration(tiempo_vars$duracion_relevamiento) #puede eliminarse para dejar en tipo numerico en segundos
+#iempo_vars %>% count(duracion_relevamiento) #verificacion
+
+tiempo_vars$nombre_dia_relevamiento <- base::as.factor(stringi::stri_trans_general(base::tolower(lubridate::wday(tiempo_vars$inicio_relevamiento, label = TRUE, abbr = FALSE)),"Latin-ASCII"))
+
+tiempo_vars <- tiempo_vars %>% rename("fecha_um_anio" = "fecha_um1_year", "fecha_um_mes" = "fecha_um1_month", "hora_inicio_um" = "hora_inicio_um1_hour", "hora_fin_um" = "hora_fin_um1_hour", "duracion_relevamiento_segundos" = "duracion_relevamiento")
+
+tiempo_vars <- subset(tiempo_vars, select = -c(fecha_um1_day, hora_inicio_um1_minute, hora_fin_um1_minute))
+
+```
+
+
+## Variables brigada
+
+Datos provenientes de la brigada
+
+```{r Subset y nombre de jefe/no_personas brigada, fig.width= 10}
+
+brigada_vars <- subset(tabla_UM, select = c(id_um, region, province, jefe_brigada, no_personas_brigada, instrumental_diametros, instrumental_alturas , datos_referencia, observaciones_um))
+
+sapply(brigada_vars, function(x) sum(is.na(x))) #NAs particularmente no trascendentes.
+vis_miss(brigada_vars, sort_miss = TRUE) + labs(title = "NA en variables de la brigada")
+
+#----NOMBRES JEFES DE BRIGADA----
+count(brigada_vars, jefe_brigada) #hay que homogeneizar los nombres, y tratar los registros raros
+nombres_jefes <- c("Abel Velasquez", "Adrian Dominguez", "Alejandro Piggot", "Ariel Amoroso", "Ariel Francisco", "Ariel Mortoro", "Arturo Segovia", "Bruno Acevedo", "Javier Albanesi", "Walter Campos", "Nestor Arriola", "Luis Carignano", "Carlos Inzaurralde", "Carlos Lima", "Pablo D'Angelo", "David Alvarez", "Eduardo Sisti", "Emiliano Blanc", "Emilio Montefinale",  "Enzo Campos", "Felipe Esteche", "Fabián Momberg", "Facundo Bertolami", "Santiago Favoretti", "Federico Gonzalez", "Felipe Galeano", "Jose Fernandez", "Fernando Barbero", "Fernando Rodriguez", "Francisco Ojeda", "Ruben Gon", "Miguel Gonzalez", "Gonzalo Caballe", "Hector Fitze", "Hector Keller", "Hernan Colomb", "Horacio Ivancich", "Leonardo Huertas", "Miguel Maldonado", "Ignacio Contreras", "Ivan Suarez", "Jorge Araujo", "Juan Solis", "Julian Quispe", "Karina Keller", "Walter Lezcano", "Lisandro Heit", "Luis Ritter", "Marcos Gonzalez", "Martin Abdo", "Matias Carignano", "Mauricio Mattenet", "Eduardo Mayol", "Miguel Mamani", "Nadia Griffiths", "Lucas Monelos",  "Walter Puyol", "Raul Arguimbao", "Renzo Eichelberger", "Santiago Ponce", "Sergio Rode", "Sergio Saiquita", "Sergio Ledesma", "Juan Skoko", "Walter Schmidt", "Felipe Galeano")
+#Package stringi para sacar acentos y normalizar el string
+#Package textclean para sacar escapes /n de los strings
+brigada_vars$jefe_brigada <- textclean::replace_white(stri_trans_general(tolower(brigada_vars$jefe_brigada),"Latin-ASCII"))
+#Package stringdist
+#loop para normalizar nombres similares, metodo Jaro-Winkler
+for (jefe in nombres_jefes) {
+  brigada_vars$jefe_brigada <- ifelse(stringdist::stringsim(brigada_vars$jefe_brigada,tolower(jefe), method = "jw") < 0.85, brigada_vars$jefe_brigada, jefe) }
+  
+#count(brigada_vars, jefe_brigada) #Verificacion
+#nombres_jefes[-which(nombres_jefes %in% brigada_vars$jefe_brigada)] #Verificacion
+
+#intercambia de lugar nombre y apellido
+brigada_vars$jefe_brigada[-which(brigada_vars$jefe_brigada %in% nombres_jefes)] <- base::sub("(\\w+)\\s(\\w+)","\\2 \\1", brigada_vars$jefe_brigada[-which(brigada_vars$jefe_brigada %in% nombres_jefes)])
+
+for (jefe in nombres_jefes) {
+  brigada_vars$jefe_brigada <- ifelse(stringsim(brigada_vars$jefe_brigada,tolower(jefe), method = "jw") < 0.85, brigada_vars$jefe_brigada, jefe) }
+
+count(brigada_vars, jefe_brigada) #Verificacion
+#nombres_jefes[-which(nombres_jefes %in% brigada_vars$jefe_brigada)] #Verificacion
+
+#se debe continuar con corrección manual de unos pocos campos, registros sin clara referencia a un nombre (por ejemplo los apodos como "cacho") por defecto es NA
+brigada_vars$jefe_brigada<- ifelse(brigada_vars$jefe_brigada %in% nombres_jefes, brigada_vars$jefe_brigada, unlist(sapply(brigada_vars$jefe_brigada, function(x) switch(x, "agustin bruno acevdo" =  "Bruno Acevedo", "alejandro walter schmidt" = "Walter Schmidt" , "bogado" = "Bogado", "campo" = "Campos", "campos" = "Campos", "carignano" = "Carignano", "canignano" = "Carignano", "carigniano" = "Carignano", "carigñano" = "Carignano", "carlos josé fernandez" = "Carlos Fernandez", "castillo" = "Castillo", "control" = "DNB", "d'angelo" = "Pablo D'Angelo", "d'angelo" = "Pablo D'Angelo", "d'angelo >pablo" = "Pablo D'Angelo", "d,angelo" = "Pablo D'Angelo", "d`angelo" = "Pablo D'Angelo", "dangelo" = "Pablo D'Angelo", "dángelo"= "Pablo D'Angelo", "diaz diego" = "Diego Diaz", "favoretti" = "Santiago Favoretti", "favoretti.s" = "Santiago Favoretti", "fernandez deivid" = "Deivid Fernandez",  "florencia maria igarzabal" = "Florencia Igarzabal", "gonzales" = "Gonzales", "gonzalez" = "Gonzalez", "gonzalez f" =  "Federico Gonzalez", "gonzalez, sabrina" = "Sabrina Gonzalez", "justino jorge araujo" = "Jorge Araujo", "manuel juan solís" = "Juan Solis", "matias diego diaz" = "Diego Diaz", "mayol" = "Eduardo Mayol", "mestres" = "Mestres", "nadia" = "Nadia Griffiths", "piggot" = "Alejandro Piggot", "r gon." = "Ruben Gon", "rodriguez f" = "Fernando Rodriguez", "saiquita" = "Sergio Saiquita", "skoko" = "Juan Skoko", "skoko-sena" =  "Juan Skoko", "skoko - sena" = "Juan Skoko", "skoko jose juan" = "Juan Skoko", "alvarez deivid" = "David Alvarez", "camilo matias jaime" = "Matias Jaime",  "alfredo marcos gonzalez" = "Marcos Gonzalez", "angel miguel mamani" = "Miguel Mamani", "angelo d" = "Pablo D'Angelo", "arguimbao rul" = "Raul Arguimbao", "bruno agustin acenedo " = "Bruno Acevedo", "agustin bruno acenedo" = "Bruno Acevedo", "camignano" = "Carignano", "carlos jose fernandez" = "Jose Fernandez", "d' angelo" = "Pablo D'Angelo", "d'pabllo angelo" = "Pablo D'Angelo", "d'pablo angrlo" = "Pablo D'Angelo", "eichelberg eenzo" = "Renzo Eichelberger", "eiclerberg renzo"  = "Renzo Eichelberger", "feliepe esteche" = "Felipe Esteche", "francisco mattenet" = "Mauricio Mattenet", "g enzo. cmpos" = "Enzo Campos", "gon" = "Ruben Gon", "javier luis ritter" = "Luis Ritter", "josé fernández carlos" = "Jose Fernandez", "juam skoko jose" = "Juan Skoko", "ledesma torres" = "Sergio Ledesma", "ledesma torrez" = "Sergio Ledesma", "manuel juan solis" = "Juan Solis", "miguel maldonado/arriola nestor" = "Miguel Maldonado", "torres sergio ledesma" = "Sergio Ledesma", "torrez sergio ledesma" = "Sergio Ledesma", NA)), use.names = FALSE))
+  
+count(brigada_vars, jefe_brigada) #Verificacion
+#nombres_jefes[-which(nombres_jefes %in% brigada_vars$jefe_brigada)] #Verificacion
+brigada_vars %>% dplyr::group_by(province) %>% count(jefe_brigada) #Verificacion de consistencia final presencia de cada jefe de brigada por provincia
+
+
+#----CANTIDAD PERSONAS BRIGADA----
+count(brigada_vars, no_personas_brigada) #tres registros de 0 y uno de 1, un registro de 14 personas pero puede ser capacitacion conjunta, por defecto se cambia a mínimo 2 integrantes de brigada.
+brigada_vars$no_personas_brigada <- ifelse(brigada_vars$no_personas_brigada == 0 | brigada_vars$no_personas_brigada == 1 | is.na(brigada_vars$no_personas_brigada), 2, brigada_vars$no_personas_brigada)
+
+count(brigada_vars, no_personas_brigada) #Verificacion
+atipicos_personas_brigada <- brigada_vars %>% filter(no_personas_brigada > 4) #se define 1 outlier (14 personas), el resto es probable dada la región de registro con parcelas de díficil acceso
+brigada_vars$no_personas_brigada[brigada_vars$no_personas_brigada == 14] <- 4
+
+
+```
+
+```{r Instrumentales de medicion, datos de referencia para el acceso y observaciones}
+
+#----INSTRUMENTALES DE MEDICION----
+brigada_vars %>% count(instrumental_diametros, instrumental_alturas)#mismo tratamiento que nombre de jefes de brigada
+
+brigada_vars$instrumental_diametros <- replace_white(stri_trans_general(tolower(brigada_vars$instrumental_diametros),"Latin-ASCII"))
+brigada_vars$instrumental_alturas <- replace_white(stri_trans_general(tolower(brigada_vars$instrumental_alturas),"Latin-ASCII"))
+
+instrumentos <- c("cinta", "cinta y forcipula", "cinta diametrica", "cinta metrica", "forcipula", "clinometro", "hipsometro","Leica Disto D510", "vara", "vertex", "distanciometro", "vara y vertex", "vara y clinometro", "relascopio" )
+
+for (instrumento in instrumentos) {
+  brigada_vars$instrumental_diametros <- ifelse(stringsim(brigada_vars$instrumental_diametros,tolower(instrumento), method = "jw") < 0.85, brigada_vars$instrumental_diametros, instrumento)
+  brigada_vars$instrumental_alturas <- ifelse(stringsim(brigada_vars$instrumental_alturas,tolower(instrumento), method = "jw") < 0.8, brigada_vars$instrumental_alturas, instrumento)}
+
+count(brigada_vars, instrumental_diametros) #Verificacion
+count(brigada_vars, instrumental_alturas) #Verificacion
+
+brigada_vars$instrumental_diametros<- ifelse(brigada_vars$instrumental_diametros %in% instrumentos, brigada_vars$instrumental_diametros, unlist(sapply(brigada_vars$instrumental_diametros, function(x) switch(x, "cinta d-m" = "cinta", "cinta d - m" = "cinta", "cinta dapera" = "cinta diametrica","cinta dendrometrica" = "cinta diametrica", "cinta diam" = "cinta diametrica", "cinta diam." = "cinta diametrica", "cinta diametrica y calibre" = "calibre y cinta diametrica", "cinta diametrica. forcipula" = "cinta diametrica y forcipula" ,"cinta metrica (conversion pi=3.14)" = "cinta metrica", "cinta, calibre y forcipula" = "calibre y cinta y forcipula", "cinta, forcipula y calibre" = "calibre y cinta y forcipula", "dapera" = "forcipula", "diametrica" = "cinta diametrica", "forcipula-cinta metrica" = "cinta metrica y forcipula", "forcipula - cinta diametrica" = "cinta diametrica y forcipula", "forcipula 60 cm cinta diametro" = "cinta diametrica y forcipula", "forcipula dap <45. cinta diametrica dap >45" = "cinta diametrica y forcipula", "forcipula y cinta dendrometrica." = "cinta diametrica y forcipula", "forcipula y cinta diametrica" = "cinta diametrica y forcipula", "forcipula y cinta diametrica." = "cinta diametrica y forcipula", "forcipula y cinta metrica" = "cinta metrica y forcipula", "forcipula, cinta d - m." = "cinta diametrica y forcipula", "forcipula, cinta diametrica" = "cinta diametrica y forcipula", "forcipula, cinta diametrica, calibre" = "calibre y cinta diametrica y forcipula", "forcipula, cinta metrica y calibre" = "calibre y cinta metrica y forcipula", "forcipula, cinta y calibre" = "calibre y cinta y forcipula", "forcipula, cinta, calibre" = "calibre y cinta y forcipula", "frocipula y cinta diametrica" = "cinta diametrica y forcipula","forcipula-cinta d-m" = "cinta diametrica y forcipula", "forcipula / cinta d-m" = "cinta diametrica y forcipula", "forcipula cinta diametrica" = "cinta diametrica y forcipula", "forcipula de 60 cm" = "forcipula", "forcipula y calibre" = "calibre y forcipula", "forcipula y cinta" = "cinta y forcipula", "forcipula y cinta d-m" = "cinta diametrica y forcipula", "forcipula y cinta." = "cinta y forcipula", "forcipula, cinta d-m" = "cinta diametrica y forcipula", "forcipula. cinta d-m" = "cinta diametrica y forcipula", "forcipula/cinta d-m" = "cinta diametrica y forcipula", "frocipula y cinta diametrica." = "cinta diametrica y forcipula", NA)), use.names = FALSE))
+
+count(brigada_vars, instrumental_diametros) #Verificacion
+
+brigada_vars$instrumental_diametros[brigada_vars$instrumental_diametros == "clinometro" | brigada_vars$instrumental_diametros == "hipsometro" | brigada_vars$instrumental_diametros == "vertex"] <- NA
+
+brigada_vars$instrumental_alturas<- ifelse(brigada_vars$instrumental_alturas %in% instrumentos, brigada_vars$instrumental_alturas, unlist(sapply(brigada_vars$instrumental_alturas, function(x) switch(x, "cinometro- pertiga" = "clinometro y vara", "cinta, clinometro e hipsometro" = "cinta y clinometro y hipsometro", "clinimetro - vara" = "clinometro y vara", "clinmetro-pertiga" = "clinometro y vara", "clinom. suunto + distanciometro" = "clinometro y distanciometro", "clinometro - vara - leica disto d510." = "clinometro y distanciometro y vara", "clinometro y cinta metrica" = "cinta metrica y clinometro", "clinometro, cinta metrica" = "cinta metrica y clinometro", "clinometro, disto leica d510." = "clinometro y distanciometro", "clinometro, hipsometro, cinta" = "cinta y clinometro y hipsometro", "clinometro, vara y vertex" = "clinometro y hipsometro y vara", "clinometro, vara y vertex." = "clinometro y hipsometro y vara", "clinometro, vara, leica disto d 510." = "clinometro y distanciometro y vara", "clinometro. leica disto d510." = "clinometro y distanciometro", "clinometro. vara. distanciometro leica d510." = "clinometro y distanciometro y vara", "clinometrp - pertiga" = "clinometro y vara", "clinomro-varaet" = "clinometro y vara", "clinoometro y pertiga" = "clinometro y vara", "cluinometro e hipsometro." = "clinometro y hipsometro", "diametrica, vara." = "vara", "distanciometro leica disto d510-vara" = "distanciometro", "nikkon forestry" = "hipsometro", "nikon" = "hipsometro", "nikon y vertex" = "hipsometro", "pertiga, clinometro" = "clinometro y vara", "regla" = "vara", "regla calibrada" = "vara", "regla draduada" = "vara", "regla graduada" = "vara", "vale - leica disto d510." = "distanciometro", "vara- distanciometro leica d510" = "distanciometro y vara", "vara - distanciometro leica d510" = "distanciometro y vara", "vara - leica disti d510." = "distanciometro y vara", "vara - leica disto d 510." = "distanciometro y vara", "vara - leica disto d510" = "distanciometro y vara", "vara - leica disto d510." = "distanciometro y vara", "vara - relascopio" = "relascopio y vara", "vara de altura" = "vara", "vara telescopica" = "vara", "vara y clinometro" = "clinometro y vara", "vara y disto leica d510." = "distanciometro y vara", "vara y leica disto d510." = "distanciometro y vara", "vara y vertex" = "hipsometro y vara", "vara, clinometro, disto leica d510." = "clinometro y distanciometro y vara", "vara. clinometro. distanciometro leica d510" = "clinometro y distanciometro y vara", "vara. leica disto d510." = "distanciometro y vara", "vara/relascopio" = "relascopio y vara", NA)), use.names = FALSE))
+
+count(brigada_vars, instrumental_alturas) #Verificacion
+
+brigada_vars$instrumental_alturas[brigada_vars$instrumental_alturas == "cinta y forcipula"] <- "cinta"
+brigada_vars$instrumental_alturas[brigada_vars$instrumental_alturas == "Leica Disto D510"] <- "distanciometro"
+brigada_vars$instrumental_alturas[brigada_vars$instrumental_alturas == "vertex"] <- "hipsometro"
+
+# count(brigada_vars, instrumental_alturas) #Verificacion
+
+#----DATOS DE REFERENCIA Y OBSERVACIONES----
+#normalizacion y reasignacion de los campos NA de datos de referencia y observaciones
+brigada_vars$datos_referencia <- replace_white(stri_trans_general(tolower(brigada_vars$datos_referencia),"Latin-ASCII"))
+brigada_vars$datos_referencia[is.na(brigada_vars$datos_referencia)] <- "sin datos"
+brigada_vars$datos_referencia <- sapply(brigada_vars$datos_referencia, function (x) gsub(",", " - ", x)) #reemplazar las comas y punto_y_coma para no ocasionar problemas con formato CSV
+brigada_vars$datos_referencia <- sapply(brigada_vars$datos_referencia, function (x) gsub(";", " - ", x))
+
+brigada_vars$observaciones_um <- replace_white(stri_trans_general(tolower(brigada_vars$observaciones_um),"Latin-ASCII"))
+brigada_vars$observaciones_um[is.na(brigada_vars$observaciones_um)] <- "sin observaciones"
+brigada_vars$observaciones_um <- sapply(brigada_vars$observaciones_um, function (x) gsub(",", " - ", x)) #reemplazar las comas y punto_y_coma para no ocasionar problemas con formato CSV
+brigada_vars$observaciones_um <- sapply(brigada_vars$observaciones_um, function (x) gsub(";", " - ", x))
+
+```
+
+
+
+## Variables sitio
+
+Los codigos de presencia de ganado provienen de la encuesta del Collect, se pueden revisar en el "Survey Designer". Existio un cambio en 2018 de encuesta, por eso existen multiples variables asociadas a la misma dimension y se deben normalizar los campos.
+Ganado: 1-Bovino, 2-Equino, 3-Caprino, 4-Ovino, 5-Otro.
+
+```{r Datos de sitio, fig.width = 15, fig.height = 8}
+
+
+sitio_vars <- subset(tabla_UM, select = c(id_um, region, province, tipo_paisaje, salinidad, incendios, pastoreo_presencia, tipo_ganado1, tipo_ganado2, tipo_ganado3, tipo_ganado4, tipo_ganado_qualifier1, tipo_ganado_qualifier2, tipo_ganado_qualifier3, tipo_ganado_qualifier4, ganado_bovino, ganado_ovino, ganado_caprino, ganado_equino, ganado_otro, ganado_otro_specify, erosion_presencia, tipo_erosion1, tipo_erosion2, erosion_rev_fisica, erosion_rev_eolica, erosion_rev_hidrica, material_caido_transecta_norte_fino, material_caido_transecta_norte_mediano, material_caido_transecta_sur_fino, material_caido_transecta_sur_mediano))
+
+cols_num <- c("incendios","pastoreo_presencia", "erosion_presencia")
+sitio_vars[cols_num] <- sapply(sitio_vars[cols_num],as.numeric)
+
+cols_logi <- c("incendios","pastoreo_presencia", "ganado_bovino", "ganado_ovino", "ganado_caprino", "ganado_equino", "ganado_otro", "erosion_presencia", "erosion_rev_fisica", "erosion_rev_eolica", "erosion_rev_hidrica")
+sitio_vars[cols_logi] <- sapply(sitio_vars[cols_logi], base::as.logical)
+
+cols_factor <- c("tipo_paisaje", "salinidad", "tipo_ganado1", "tipo_ganado2", "tipo_ganado3", "tipo_ganado4", "tipo_erosion1", "tipo_erosion2") #"exposicion" (falta)
+sitio_vars[cols_factor] <- sapply(sitio_vars[cols_factor],as.factor)
+
+sapply(sitio_vars, function(x) sum(is.na(x))) #NAs abundantes en algunas variables por cambio de modelo de encuesta
+visdat::vis_miss(sitio_vars, sort_miss = TRUE) + labs(title = "NA en variables de sitio")
+
+
+#----PAISAJE----
+sitio_vars$tipo_paisaje <- as.factor(unlist(sapply(sitio_vars$tipo_paisaje, function(x) switch(x, "1" = "llano", "2" = "colinado", "3" = "montanoso", "4" = "duna", "5" = "depresion", "6" = "serrano", x)), use.names = FALSE))
+
+#----SALINIDAD----
+count(sitio_vars, salinidad) #sin mayores anomalías
+sitio_vars$salinidad <- as.factor(unlist(sapply(sitio_vars$salinidad, function(x) switch(x, "1" = "ausencia", "2" = "presencia", "3" = "presencia fuerte", NA)), use.names = FALSE))
+
+#----INCENDIOS----
+count(sitio_vars, incendios) #sin mayores anomalías
+
+#----GANADO----
+#Ganado: dejar columna presencia T o F, luego convertir las demas T o F del nuevo diseño de la encuesta y adaptar lo viejo para una sola columna donde se especifique el tipo de ganado (incluye a los casos de "otro"). 
+
+sitio_vars$pastoreo_presencia <- ifelse(is.na(sitio_vars$pastoreo_presencia) & (sitio_vars$ganado_bovino == TRUE | sitio_vars$ganado_ovino == TRUE | sitio_vars$ganado_caprino == TRUE | sitio_vars$ganado_equino == TRUE | sitio_vars$ganado_otro == TRUE), TRUE, sitio_vars$pastoreo_presencia)
+
+sitio_vars$pastoreo_presencia <- ifelse(is.na(sitio_vars$pastoreo_presencia) & (sitio_vars$ganado_bovino == FALSE & sitio_vars$ganado_ovino == FALSE & sitio_vars$ganado_caprino == FALSE & sitio_vars$ganado_equino == FALSE & sitio_vars$ganado_otro == FALSE), FALSE, sitio_vars$pastoreo_presencia) #se hacen los dos casos por separado (T | F) para no perder los potenciales NAs.
+
+clasif_ganado_nuevo <- c("ganado_bovino", "ganado_equino", "ganado_caprino", "ganado_ovino", "ganado_otro")
+clasif_ganado_viejo <- c("tipo_ganado1", "tipo_ganado2", "tipo_ganado3", "tipo_ganado4")
+i <- 0 #factors_ganado <- c("1", "2", "3", "4", "5")
+for (ganado_nuevo in clasif_ganado_nuevo){
+  i <- i + 1
+    for (ganado_viejo in clasif_ganado_viejo){
+     sitio_vars[ganado_nuevo] <- sapply(sitio_vars[ganado_nuevo], function(x) ifelse(is.na(x) & sitio_vars[ganado_viejo] == base::as.character(i), TRUE, x))
+    }
+}
+
+count(sitio_vars, ganado_otro_specify) 
+sitio_vars %>% count(tipo_ganado_qualifier1, tipo_ganado_qualifier2, tipo_ganado_qualifier3, tipo_ganado_qualifier4)
+
+
+sitio_vars$ganado_otro_specify <- ifelse(is.na(sitio_vars$ganado_otro_specify) & (!is.na(sitio_vars$tipo_ganado_qualifier1)), sitio_vars$tipo_ganado_qualifier1, ifelse(!is.na(sitio_vars$tipo_ganado_qualifier2), sitio_vars$tipo_ganado_qualifier2, ifelse(!is.na(sitio_vars$tipo_ganado_qualifier3), sitio_vars$tipo_ganado_qualifier3, ifelse(!is.na(sitio_vars$tipo_ganado_qualifier4), sitio_vars$tipo_ganado_qualifier4, sitio_vars$ganado_otro_specify))))
+
+count(sitio_vars, ganado_otro_specify) #verificacion
+
+sitio_vars$ganado_otro_specify <- replace_white(stri_trans_general(tolower(sitio_vars$ganado_otro_specify),"Latin-ASCII"))
+
+otro_ganado <- c("corzuela", "anta", "asnal", "bufalo", "ciervo", "guanaco", "guazuncho", "liebre", "porcino", "tapir","venado")
+
+for (ganado in otro_ganado) {
+  sitio_vars$ganado_otro_specify <- ifelse(stringsim(sitio_vars$ganado_otro_specify,tolower(ganado), method = "jw") < 0.85, sitio_vars$ganado_otro_specify, ganado) }
+
+sitio_vars$ganado_otro_specify<- ifelse(sitio_vars$ganado_otro_specify %in% otro_ganado, sitio_vars$ganado_otro_specify, unlist(sapply(sitio_vars$ganado_otro_specify, function(x) switch(x, "animal nativo, corzuela" = "corzuela", "bubalino" = "bufalo", "cervido" = "ciervo", "cervidos" = "ciervo", "ciervo axis" = "ciervo", "ciervo axis." = "ciervo", "corzuela. tapir. oso hormiguero" = "corzuela y tapir", "ramoneo por liebre" = "liebre", "sin definir" = "sin especificar", "tapir (oso hormiguero)" = "tapir", "tapir. corzuelas" = "corzuela y tapir", "uso familiar" = "sin especificar", "vacuno, ciervo." = "ciervo", x)), use.names = FALSE))
+
+count(sitio_vars, ganado_otro_specify) #verificacion
+
+sitio_vars$ganado_bovino[sitio_vars$ganado_otro_specify == "vacuno"] <- TRUE
+sitio_vars$ganado_otro[sitio_vars$ganado_otro_specify == "vacuno"] <- FALSE
+sitio_vars$ganado_otro_specify[sitio_vars$ganado_otro_specify == "vacuno"] <- NA
+
+
+#----EROSION----
+#Mismo tratamiento que presencia_ganado
+
+count(sitio_vars, erosion_presencia) 
+sitio_vars %>% count(tipo_erosion1, tipo_erosion2)
+sitio_vars %>% count(erosion_rev_fisica, erosion_rev_eolica, erosion_rev_hidrica)
+
+sitio_vars$erosion_presencia <- ifelse(is.na(sitio_vars$erosion_presencia) & (sitio_vars$erosion_rev_fisica == TRUE | sitio_vars$erosion_rev_eolica == TRUE | sitio_vars$erosion_rev_hidrica == TRUE), TRUE, sitio_vars$erosion_presencia)
+
+sitio_vars$erosion_presencia <- ifelse(is.na(sitio_vars$erosion_presencia) & (sitio_vars$erosion_rev_fisica == FALSE & sitio_vars$erosion_rev_eolica == FALSE & sitio_vars$erosion_rev_eolica == FALSE), FALSE, sitio_vars$erosion_presencia) #se hacen los dos casos por separado (T | F) para no perder los potenciales NAs.
+
+clasif_erosion_nuevo <- c("erosion_rev_hidrica", "erosion_rev_eolica", "erosion_rev_fisica")
+clasif_erosion_viejo <- c("tipo_erosion1", "tipo_erosion2")
+i <- 0 #factors_erosion <- c("1" = "hidrica", "2" = "eolica", "3" = "fisica")
+for (erosion_nuevo in clasif_erosion_nuevo){
+  i <- i + 1
+    for (erosion_viejo in clasif_erosion_viejo){
+     sitio_vars[erosion_nuevo] <- sapply(sitio_vars[erosion_nuevo], function(x) ifelse(is.na(x) & sitio_vars[erosion_viejo] == as.character(i), TRUE, x))
+    }
+}
+
+# count(sitio_vars, erosion_presencia) #verificacion
+# sitio_vars %>% count(erosion_rev_fisica, erosion_rev_eolica, erosion_rev_hidrica) #verificacion
+
+
+#----MATERIAL CAIDO (SIN EL GRUESO)----
+count(sitio_vars, material_caido_transecta_norte_fino) #es dificil de evaluar, todos los valores podrían ser posibles
+count(sitio_vars, material_caido_transecta_norte_mediano) #sin anomalias
+count(sitio_vars, material_caido_transecta_sur_fino) #es dificil de evaluar, todos los valores podrían ser posibles
+count(sitio_vars, material_caido_transecta_sur_mediano) #sin anomalias
+
+#library(cowplot)
+cowplot::plot_grid(sitio_vars %>% ggplot(aes(x=material_caido_transecta_norte_fino)) + geom_freqpoly() , sitio_vars %>% ggplot(aes(x=material_caido_transecta_norte_mediano)) + geom_freqpoly(),  sitio_vars %>% ggplot(aes(x=material_caido_transecta_sur_fino)) + geom_freqpoly(), sitio_vars %>% ggplot(aes(x=material_caido_transecta_sur_mediano)) + geom_freqpoly())
+
+
+##----FIN DE CHUNK----
+sitio_vars <- sitio_vars %>% rename("salinidad_presencia" = "salinidad", "incendios_rastros" = "incendios", "ganado_otro_tipo" = "ganado_otro_specify", "erosion_hidrica_presencia" = "erosion_rev_hidrica", "erosion_eolica_presencia" = "erosion_rev_eolica", "erosion_fisica_presencia" = "erosion_rev_fisica")
+
+sitio_vars <- subset(sitio_vars, select = -c(tipo_ganado1, tipo_ganado2, tipo_ganado3, tipo_ganado4,tipo_ganado_qualifier1, tipo_ganado_qualifier2, tipo_ganado_qualifier3, tipo_ganado_qualifier4, tipo_erosion1, tipo_erosion2))
+
+```
+
+
+
+## Variables biodiversidad UM
+
+Los codigos de formas de vida y Productos Forestales No Madereros (PFNM) provienen de la encuesta del Collect, se pueden revisar en el "Survey Designer". Existio un cambio en 2018 de encuesta, por eso existen multiples variables asociadas a la misma dimension y se deben normalizar los campos.
+Sugerencia: convendría cambiar el termino "formas de vida" (bien definido tecnicamente  y no corresponde con la categorias que se usaron en el inventario) a "diversidad de biota".
+
+formas_vida: 0-Ausencia, 1-Helechos, 2-Cactaceas, 3-Epifitas, 4-Briofitas, 5-Lianas, 6-Orquideas, 7-Gramineas, 8-Otras. 
+
+Para PFNM se trabaja con el nombre científico solamente, el resto de las columnas de código (pfnm_code) y nombre vulgar (pfnm_vernacular_name1) se pueden descartar.
+
+```{r Datos de biodiversidad en UM, fig.width = 15, fig.height = 8}
+
+
+bio_vars <- subset(tabla_UM, select = c(id_um, region, province, formas_vida1, formas_vida2, formas_vida3, formas_vida4, formas_vida5, formas_vida6, formas_vida7, formas_vida8, formas_vida_qualifier1, formas_vida_qualifier2, formas_vida_qualifier3, formas_vida_qualifier4, formas_vida_qualifier5, formas_vida_qualifier6, formas_vida_qualifier7, pfnm_scientific_name1, pfnm_scientific_name2, pfnm_scientific_name3, pfnm_scientific_name4, pfnm_scientific_name5))
+
+sapply(bio_vars, function(x) sum(is.na(x))) #NAs abundantes en algunas variables debido al modelo de encuesta
+visdat::vis_miss(bio_vars, sort_miss = TRUE) + labs(title = "NA en variables de bio")
+
+
+cols_factor_vida <- c("formas_vida1", "formas_vida2", "formas_vida3", "formas_vida4", "formas_vida5", "formas_vida6", "formas_vida7", "formas_vida8")
+bio_vars[cols_factor_vida] <- lapply(bio_vars[cols_factor_vida], as.factor)
+
+
+#----FORMAS DE VIDA----
+bio_vars <- bio_vars %>% mutate(formas_helechos = ifelse(formas_vida1 == "1" | formas_vida2 == "1" | formas_vida3 == "1" | formas_vida4 == "1" | formas_vida5 == "1" | formas_vida6 == "1" | formas_vida7 == "1" | formas_vida8 == "1", TRUE, FALSE),
+                                formas_cactaceas = ifelse(formas_vida1 == "2" | formas_vida2 == "2" | formas_vida3 == "2" | formas_vida4 == "2" | formas_vida5 == "2" | formas_vida6 == "2" | formas_vida7 == "2" | formas_vida8 == "2", TRUE, FALSE),
+                                formas_epifitas = ifelse(formas_vida1 == "3" | formas_vida2 == "3" | formas_vida3 == "3" | formas_vida4 == "3" | formas_vida5 == "3" | formas_vida6 == "3" | formas_vida7 == "3" | formas_vida8 == "3", TRUE, FALSE),
+                                formas_briofitas = ifelse(formas_vida1 == "4" | formas_vida2 == "4" | formas_vida3 == "4" | formas_vida4 == "4" | formas_vida5 == "4" | formas_vida6 == "4" | formas_vida7 == "4" | formas_vida8 == "4", TRUE, FALSE),
+                                formas_lianas = ifelse(formas_vida1 == "5" | formas_vida2 == "5" | formas_vida3 == "5" | formas_vida4 == "5" | formas_vida5 == "5" | formas_vida6 == "5" | formas_vida7 == "5" | formas_vida8 == "5", TRUE, FALSE),
+                                formas_orquideas = ifelse(formas_vida1 == "6" | formas_vida2 == "6" | formas_vida3 == "6" | formas_vida4 == "6" | formas_vida5 == "6" | formas_vida6 == "6" | formas_vida7 == "6" | formas_vida8 == "6", TRUE, FALSE),
+                                formas_gramineas = ifelse(formas_vida1 == "7" | formas_vida2 == "7" | formas_vida3 == "7" | formas_vida4 == "7" | formas_vida5 == "7" | formas_vida6 == "7" | formas_vida7 == "7" | formas_vida8 == "7", TRUE, FALSE),
+                                formas_otras = ifelse(formas_vida1 == "8" | formas_vida2 == "8" | formas_vida3 == "8" | formas_vida4 == "8" | formas_vida5 == "8" | formas_vida6 == "8" | formas_vida7 == "8" | formas_vida8 == "8", TRUE, FALSE))
+
+#rectificacion por que no aplica bien el mutate con el ifelse en modo variable logica
+bio_vars[c("formas_helechos", "formas_cactaceas", "formas_epifitas", "formas_briofitas", "formas_lianas", "formas_orquideas", "formas_gramineas","formas_otras")][is.na(bio_vars[c("formas_helechos", "formas_cactaceas", "formas_epifitas", "formas_briofitas", "formas_lianas", "formas_orquideas", "formas_gramineas","formas_otras")])] <- FALSE
+
+count(bio_vars, formas_helechos, formas_cactaceas, formas_epifitas, formas_briofitas, formas_lianas, formas_orquideas, formas_gramineas,formas_otras)
+
+count(bio_vars, formas_vida_qualifier1)
+count(bio_vars, formas_vida_qualifier2)
+count(bio_vars, formas_vida_qualifier3)
+count(bio_vars, formas_vida_qualifier4)
+count(bio_vars, formas_vida_qualifier5)
+count(bio_vars, formas_vida_qualifier6)
+count(bio_vars, formas_vida_qualifier7)
+
+#normalización strings
+bio_vars[c("formas_vida_qualifier1", "formas_vida_qualifier2", "formas_vida_qualifier3", "formas_vida_qualifier4", "formas_vida_qualifier5", "formas_vida_qualifier6", "formas_vida_qualifier7")] <- base::lapply(bio_vars[c("formas_vida_qualifier1", "formas_vida_qualifier2", "formas_vida_qualifier3", "formas_vida_qualifier4", "formas_vida_qualifier5", "formas_vida_qualifier6", "formas_vida_qualifier7")], function(x) replace_white(stri_trans_general(tolower(x),"Latin-ASCII")))
+
+#aglutinar en una columna el detalle de otras formas de vida
+bio_vars$formas_otras_detalle <- base::paste(bio_vars$formas_vida_qualifier1, bio_vars$formas_vida_qualifier2, bio_vars$formas_vida_qualifier3, bio_vars$formas_vida_qualifier4, bio_vars$formas_vida_qualifier5, bio_vars$formas_vida_qualifier6, bio_vars$formas_vida_qualifier7, sep = "_")
+
+bio_vars$formas_otras_detalle <- replace_white(stri_trans_general(tolower(bio_vars$formas_otras_detalle),"Latin-ASCII"))
+bio_vars$formas_otras_detalle[ bio_vars$formas_otras_detalle == "na_na_na_na_na_na_na"]<- "no_corresponde"
+#se detectan algunos FALSE en formas_otras que si tienen detalle
+bio_vars$formas_otras <- ifelse(bio_vars$formas_otras == FALSE & bio_vars$formas_otras_detalle != "no_corresponde", TRUE, ifelse(bio_vars$formas_otras_detalle == "no_corresponde", FALSE, bio_vars$formas_otras)) 
+#quitar los "NA"
+bio_vars$formas_otras_detalle <- sapply(bio_vars$formas_otras_detalle, function (x) gsub("_na","", x))
+bio_vars$formas_otras_detalle <- sapply(bio_vars$formas_otras_detalle, function (x) gsub(",", " - ", x)) #reemplazar las comas y punto_y_coma para no ocasionar problemas con formato CSV
+bio_vars$formas_otras_detalle <- sapply(bio_vars$formas_otras_detalle, function (x) gsub(";", " - ", x))
+
+#----PFNM----
+count(bio_vars, pfnm_scientific_name1, pfnm_scientific_name2, pfnm_scientific_name3, pfnm_scientific_name4, pfnm_scientific_name5)#hay UMs con más de un registro
+
+bio_vars[c("pfnm_scientific_name1", "pfnm_scientific_name2", "pfnm_scientific_name3", "pfnm_scientific_name4", "pfnm_scientific_name5")][is.na(bio_vars[c("pfnm_scientific_name1", "pfnm_scientific_name2", "pfnm_scientific_name3", "pfnm_scientific_name4", "pfnm_scientific_name5")])] <- "sin registro"
+
+bio_vars$pfnm_scientific_name1[bio_vars$pfnm_scientific_name1 == "0"] <- "sin registro"
+
+#aglutinar en una sola columna separando con comas
+bio_vars$PFNM_presencia <- paste(bio_vars$pfnm_scientific_name1, bio_vars$pfnm_scientific_name2, bio_vars$pfnm_scientific_name3, bio_vars$pfnm_scientific_name4, bio_vars$pfnm_scientific_name5, sep = "_")
+
+#quitar "sin registro" o reducir solo a uno
+bio_vars$PFNM_presencia <- str_remove_all(bio_vars$PFNM_presencia, "_sin registro")
+bio_vars$PFNM_presencia <- replace_white(bio_vars$PFNM_presencia)
+
+#----FIN DE CHUNK----
+bio_vars <- bio_vars %>% rename("PFNM_registro_1" = "pfnm_scientific_name1", "PFNM_registro_2" = "pfnm_scientific_name2", "PFNM_registro_3" = "pfnm_scientific_name3", "PFNM_registro_4" = "pfnm_scientific_name4", "PFNM_registro_5" = "pfnm_scientific_name5", "PFNM_presencia_resumen" = "PFNM_presencia")
+
+bio_vars <- subset(bio_vars, select = -c(formas_vida1, formas_vida2, formas_vida3, formas_vida4, formas_vida5, formas_vida6, formas_vida7, formas_vida8, formas_vida_qualifier1, formas_vida_qualifier2, formas_vida_qualifier3, formas_vida_qualifier4, formas_vida_qualifier5, formas_vida_qualifier6, formas_vida_qualifier7))
+
+bio_vars <- bio_vars[, c(1:3, 18, 4:17)]
+
+```
+
+
+## Armado tabla final
+
+Join y write table.
+
+```{r Datos de biodiversidad en UM, fig.width = 15, fig.height = 8}
+
+
+var_UM_f <- plyr::join_all(list(espacial_vars, tiempo_vars, brigada_vars, sitio_vars, bio_vars), by = c("id_um", "region", "province"), type = "inner")
+
+tabla_estepa <- var_UM_f[var_UM_f$id_um %in% um_monte_estepa, ]
+tabla_sin_estepa <- var_UM_f[!var_UM_f$id_um %in% um_monte_estepa, ]
+
+#write.table(var_UM_f, file = "C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\otras_variables_UM_todas_OFC_completa_correg.csv", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = ",")
+
+# write.table(tabla_sin_estepa, file = "C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\otras_variables_UM_sin_estepa_3.csv", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = ",")
+
+# write.table(tabla_estepa, file = "C:\\Users\\Admin\\Desktop\\R inbn2\\informe_nac\\otras_variables_UM_estepa_3.csv", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = ",")
+
+```
+
+```{r, size="small" }
+
+tabla_sin_estepa %>% group_by(formas_helechos, formas_cactaceas, formas_epifitas, formas_briofitas, formas_lianas, formas_orquideas, formas_orquideas, formas_gramineas, formas_otras) %>% summarise(count = n()) %>% arrange(desc(count))
+
+funcion1 <- function(s){
+tabla_sin_estepa %>% filter(region == s) %>% group_by(formas_helechos, formas_cactaceas, formas_epifitas, formas_briofitas, formas_lianas, formas_orquideas, formas_orquideas, formas_gramineas, formas_otras) %>% summarise(count = n()) %>% arrange(desc(count))}
+
+for (reg in unique(tabla_sin_estepa$region)) {
+ 
+ print(reg)   
+ f<-funcion1(reg)
+ print(f)
+  
+}
+
+
+```
+
+```{r}
+
+tabla_sin_estepa %>% count(tipo_paisaje) 
+
+funcion2 <- function(s){
+tabla_sin_estepa %>% filter(region == s) %>% count(tipo_paisaje) 
+  }
+
+for (reg in unique(tabla_sin_estepa$region)) {
+ 
+ print(reg)   
+ f<-funcion2(reg)
+ print(f)
+  
+}
+```
+
+
+
+```{r}
+
+tabla_sin_estepa %>% count(PFNM_presencia_resumen != "sin registro")  
+tabla_sin_estepa %>% count(PFNM_presencia_resumen, sort = TRUE)
+
+funcion3 <- function(s){
+print(tabla_sin_estepa %>% filter(region == s) %>% count(PFNM_presencia_resumen != "sin registro"))
+print(tabla_sin_estepa %>% filter(region == s) %>% count(PFNM_presencia_resumen, sort = TRUE))
+  }
+
+for (reg in unique(tabla_sin_estepa$region)) {
+
+ print(reg)
+ f<-funcion3(reg)
+ }
+  
+```
